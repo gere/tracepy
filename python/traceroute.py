@@ -12,12 +12,13 @@ def listen():
 		data, addr = s1.recvfrom(1508)
 		print ("Packet from %r: %r" % (addr,data))
 
-HOST = socket.gethostbyname('alesca.it')
+HOST = socket.gethostbyname('google.it')
 PORT = 80	
 ADDR = (HOST, PORT)
 ttl = 1
+timeout = 0
 try:
-	send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	dgram_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 except socket.error as msg: 
 	print('send socket no created. Errror code:' + str(msg))
 	sys.exit()
@@ -29,23 +30,47 @@ except socket.error as msg:
 	sys.exit()
 
 listen_socket.setsockopt(socket.SOL_IP, socket.IP_HDRINCL, 1)
-listen_socket.settimeout(10)
+listen_socket.settimeout(3)
 
-while 1:	
-	send_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
+while ttl < 100:	
+
+	if (timeout >= 3):
+		ttl += 1
+		timeout = 0	
+		"""tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		tcp_socket.connect(ADDR)
+		tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl	- 1)
+		tcp_socket.sendall(b"GET /\n\n")
+		try:
+			data, addr = listen_socket.recvfrom(1508)
+		except socket.timeout:
+			print("timeout at tcp hop", ttl, '\n')
+			timeout+=1
+			tcp_socket.close()
+			continue
+
+		ttl += 1
+		timeout = 0
+		tcp_socket.close()
+		continue"""
+	
+	dgram_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
+	
 	p = pack('hhl', 1, 2, 3)
-	b = send_socket.sendto(p, ADDR)
-	print ("bytes sent:", b)
+	b = dgram_socket.sendto(p, ADDR)
 	try:
 		data, addr = listen_socket.recvfrom(1508)
 	except socket.timeout:
 		print("timeout at hop", ttl, '\n')
+		timeout += 1		
 		continue
 	if (addr == HOST):
 		print("Arrived!\n")
+		
 		break
 	print("hop:", ttl, addr)
 	ttl += 1
+	
 
 
 
