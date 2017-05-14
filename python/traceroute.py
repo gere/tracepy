@@ -6,26 +6,47 @@ import os
 from struct import *
 
 def listen():
-  s1 = socket.socket(socket.AF_INET,socket.SOCK_RAW,socket.IPPROTO_ICMP)
-  #s1.setsockopt(socket.SOL_IP, socket.IP_HDRINCL, 1)
-  while 1:
-    data, addr = s1.recvfrom(1508)
-    print ("Packet from %r: %r" % (addr,data))
+	s1 = socket.socket(socket.AF_INET,socket.SOCK_RAW,socket.IPPROTO_ICMP)
+	s1.setsockopt(socket.SOL_IP, socket.IP_HDRINCL, 1)
+	while 1:
+		data, addr = s1.recvfrom(1508)
+		print ("Packet from %r: %r" % (addr,data))
 
-HOST = socket.gethostbyname('google.it')
-PORT = 33434
+HOST = socket.gethostbyname('alesca.it')
+PORT = 80	
 ADDR = (HOST, PORT)
+ttl = 1
 try:
-	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 except socket.error as msg: 
-	print('socket no created. Errror code:' + str(msg))
+	print('send socket no created. Errror code:' + str(msg))
 	sys.exit()
 
-#s.settimeout(3)	
-s.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, 1)
-p = pack('hhl', 1, 2, 3)
-b = s.sendto(p, ADDR)
-listen()
+try:
+	listen_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW,socket.IPPROTO_ICMP)
+except socket.error as msg: 
+	print('listen socket no created. Errror code:' + str(msg))
+	sys.exit()
+
+listen_socket.setsockopt(socket.SOL_IP, socket.IP_HDRINCL, 1)
+listen_socket.settimeout(10)
+
+while 1:	
+	send_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
+	p = pack('hhl', 1, 2, 3)
+	b = send_socket.sendto(p, ADDR)
+	print ("bytes sent:", b)
+	try:
+		data, addr = listen_socket.recvfrom(1508)
+	except socket.timeout:
+		print("timeout at hop", ttl, '\n')
+		continue
+	if (addr == HOST):
+		print("Arrived!\n")
+		break
+	print("hop:", ttl, addr)
+	ttl += 1
+
 
 
 """try:
