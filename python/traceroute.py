@@ -4,6 +4,12 @@ import socket
 import sys
 import os
 from struct import *
+from collections import namedtuple
+
+ip4_header = namedtuple('ip4_header', 'version_ihl tos length ident flags ttl proto checksum source destination')
+icmp_header = namedtuple('icmp_header', 'type code checksum rest')
+ip4_header_format  = ('!BBHHHBBH4s4s')
+icmp_header_format = ('!5IBBHI')
 
 def listen():
 
@@ -55,20 +61,28 @@ def listen():
 example data of 105 byte size
 b'E\xc04\x00\xea\x8e\x00\x00@\x01{d\n\x00\x00\x01\n\x00\x00\x02\x0b\x00\xa5i\x00\x00\x00\x00E\x00,\x00\x81O\x00\x00\x01\x11\x882\n\x00\x00\x02\xd8:\xce\x03\xe5\xee\x00P\x00\x18c?\x01\x00\x02\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00'
 """
-def unpack_packet(buffer):
+def unpack_icmp_packet(buffer):
 	#ip_header_format = "!bbhII4s4s"
-	ip_header_format = "!IIIIIbbhlh3s"
-	return unpack_from(ip_header_format, buffer)
+	#ip_header_format = "!IIIIIbbhlh3s"
+	ip4_h = ip4_header._make(unpack_from(ip4_header_format, buffer))
+	version = (ip4_h.version_ihl & 0xF0) >> 4
+	ihl = (ip4_h.version_ihl & 0x0F)
+	if (version != 4 and ihl != 5):
+		print("not my packet")
+		return
+	icmp_h = icmp_header._make(unpack_from(icmp_header_format, buffer)[5:])
+	print(icmp_h.type)
+	print(icmp_h.code)
+
+
 
 test_packet = b'E\xc04\x00\xea\x8e\x00\x00@\x01{d\n\x00\x00\x01\n\x00\x00\x02\x0b\x00\xa5i\x00\x00\x00\x00E\x00,\x00\x81O\x00\x00\x01\x11\x882\n\x00\x00\x02\xd8:\xce\x03\xe5\xee\x00P\x00\x18c?\x01\x00\x02\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00'
 test_packet2 = b"E\xc0'\x00\xac\xfa\x00\x00@\x01\xb9\x05\n\x00\x00\x01\n\x00\x00\x02\x0b\x00\xa5<\x00\x00\x00\x00E\x00\x1f\x00'P\x00\x00\x01\x11\xe2^\n\x00\x00\x02\xd8:\xcd\xe3\xd7x\x00P\x00\x0bs\xed\x01\x02\x03"
 #version_ihl, dscp_ecn, total_length, _, _, source_ip, dest_ip = unpack_packet(test_packet)
-_,_,_,_,_, typef, code, _,_,_, data = unpack_packet(test_packet2)
+#iph = ip4_header._make(unpack_packet(test_packet))
 
-print(typef)
-print(code)
-for x in data:
-	print(x.hex())
+#print(iph.version_ihl)
+#print((iph.version_ihl & 240) >> 4)
 #listen()
 #print(total_length)
-
+unpack_icmp_packet(test_packet2)
