@@ -13,11 +13,12 @@ packet_header_format = namedtuple('packet_header_format', 'format length')
 ip4_header_format  = packet_header_format._make(('!BBHHHBBH4s4s', 10))
 icmp_header_format = packet_header_format._make((ip4_header_format.format + 'BBHI', ip4_header_format.length + 4))
 
-pid = os.getpid()
+
 
 
 def listen():
-
+	pid = os.getpid()
+	print("pid:", pid)
 	HOST = socket.gethostbyname('google.it')
 	PORT = 80	
 	ADDR = (HOST, PORT)
@@ -47,7 +48,7 @@ def listen():
 		
 		send_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
 		
-		p = pack('!I', pid)
+		p = pack('!h', pid)
 
 		b = send_socket.sendto(p, ADDR)
 		try:
@@ -57,12 +58,22 @@ def listen():
 			timeout += 1		
 			continue
 		if (addr == HOST):
-			print("Arrived!\n")
-			
+			print("Arrived!\n")			
 			break
-		#print("hop:", ttl, addr, "size:", sys.getsizeof(data), data)
-		return data
-		break
+		icmp_h, icmp_data = dissect_icmp_packet(data)
+		original_buffer = icmp_data[(5*4):]
+		original_ip4_h = ip4_header._make(unpack_from(icmp_header_format.format, icmp_data)[0:ip4_header_format.length])
+		if (len(original_buffer) < 12):
+			print("wrong:", addr, len(original_buffer))
+			ttl += 1
+			continue
+			
+		original_data = unpack_from("!IIh", original_buffer)
+		if(original_data[2] == pid):
+			print("hop:", ttl, addr, original_data[2])
+		else:
+			print(original_data[2])
+			break
 		ttl += 1
 	
 """
@@ -99,15 +110,15 @@ test_packet4 = b'E\xc00\x00^\xf0\x00\x00@\x01\x07\x07\n\x00\x00\x01\n\x00\x00\x0
 #print((iph.version_ihl & 240) >> 4)
 #listen()
 #print(total_length)
-test_packet = listen()
+listen()
 #print(test_packet)
-icmp_data = dissect_icmp_packet(test_packet)[1]
-ip4_h = ip4_header._make(unpack_from(ip4_header_format.format, icmp_data))
-ihl = (ip4_h.version_ihl & 0x0F)
+#icmp_data = dissect_icmp_packet(test_packet)[1]
+#ip4_h = ip4_header._make(unpack_from(ip4_header_format.format, icmp_data))
+#ihl = (ip4_h.version_ihl & 0x0F)
 
 
-original_buffer = icmp_data[(5*4):]
+
 #the original datagrams also contains a 8 byte header!!!!!
-original_data = unpack_from("!III", original_buffer)
-assert original_data[2] == pid
+#original_data = unpack_from("!III", original_buffer)
+#assert original_data[2] == pid
 #print(pack('!BBB',1,2,3))
