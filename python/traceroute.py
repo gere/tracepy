@@ -4,14 +4,17 @@ import socket
 import sys
 import os
 from struct import *
+from time import sleep
 from collections import namedtuple
 
 ip4_header = namedtuple('ip4_header', 'version_ihl tos length ident flags ttl proto checksum source destination')
 icmp_header = namedtuple('icmp_header', 'type code checksum rest')
+udp_header = namedtuple('udp_header', 'source_port dest_port length checksum')
 icmp_hl = 2
 packet_header_format = namedtuple('packet_header_format', 'format length')
 ip4_header_format  = packet_header_format._make(('!BBHHHBBH4s4s', 10))
 icmp_header_format = packet_header_format._make((ip4_header_format.format + 'BBHI', ip4_header_format.length + 4))
+udp_header_format = packet_header_format._make(('!HHHH', 4))
 
 
 
@@ -27,6 +30,7 @@ def listen():
 
 	try:
 		send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
 	except socket.error as msg: 
 		print('send socket no created. Errror code:' + str(msg))
 		sys.exit()
@@ -40,17 +44,21 @@ def listen():
 	listen_socket.setsockopt(socket.SOL_IP, socket.IP_HDRINCL, 1)
 	listen_socket.settimeout(3)
 
-	while ttl < 100:	
+	while ttl < 100:
+		sleep(2)
+		
 
 		if (timeout >= 3):
 			ttl += 1
 			timeout = 0		
 		
 		send_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
-		
+
 		p = pack('!h', pid)
 
 		b = send_socket.sendto(p, ADDR)
+		port_number = send_socket.getsockname()[1]		
+		
 		try:
 			data, addr = listen_socket.recvfrom(1508)
 		except socket.timeout:
@@ -63,18 +71,22 @@ def listen():
 		icmp_h, icmp_data = dissect_icmp_packet(data)
 		original_buffer = icmp_data[(5*4):]
 		original_ip4_h = ip4_header._make(unpack_from(icmp_header_format.format, icmp_data)[0:ip4_header_format.length])
-		if (len(original_buffer) < 12):
-			print("wrong:", addr, len(original_buffer))
+
+		
+		
+		original_udp_h = udp_header._make(unpack_from(udp_header_format.format, original_buffer)[0:udp_header_format.length])
+		if(original_udp_h.source_port == port_number):
+			print("hop:", ttl, addr)
 			ttl += 1
-			continue
-			
-		original_data = unpack_from("!IIh", original_buffer)
-		if(original_data[2] == pid):
-			print("hop:", ttl, addr, original_data[2])
 		else:
-			print(original_data[2])
-			break
-		ttl += 1
+			#print("wrong:", addr, original_udp_h)			
+			listen_socket.close()
+			listen_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW,socket.IPPROTO_ICMP)
+			
+		
+			
+		
+		
 	
 """
 example data of 105 byte size
