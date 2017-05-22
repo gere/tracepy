@@ -8,12 +8,81 @@ from struct import *
 from time import sleep
 from collections import namedtuple
 
+"""
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |Version|  IHL  |Type of Service|          Total Length         |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |         Identification        |Flags|      Fragment Offset    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  Time to Live |    Protocol   |         Header Checksum       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                       Source Address                          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Destination Address                        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Options                    |    Padding    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+"""
 ip4_header = namedtuple('ip4_header', 
 						'version_ihl tos length ident flags ttl proto checksum source destination')
+
+
+"""
+	0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     Type      |     Code      |          Checksum             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |               rest of the message / unused                    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |      Internet Header + 64 bits of Original Data Datagram      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+"""
 icmp_header = namedtuple('icmp_header', 'type code checksum rest')
+
+
+"""
+ 0      7 8     15 16    23 24    31  
+ +--------+--------+--------+--------+ 
+ |     Source      |   Destination   | 
+ |      Port       |      Port       | 
+ +--------+--------+--------+--------+ 
+ |                 |                 | 
+ |     Length      |    Checksum     | 
+ +--------+--------+--------+--------+ 
+ """
 udp_header = namedtuple('udp_header', 'source_port dest_port length checksum')
 
-""" struct format for packet headers """
+
+
+"""
+ struct format for packet headers 
+Python formats
+Format	C Type			Python type			Standard size	
+x		pad byte		no value	 	 
+c		char			bytes of length 1		1	 
+b		signed char		integer					1
+B		unsigned char	integer					1	
+?		_Bool			bool					1
+h		short			integer					2	
+H		unsigned short	integer					2	
+i		int				integer					4
+I		unsigned int	integer					4	
+l		long			integer					4	
+L		unsigned long	integer					4	
+q		long long		integer					8	
+Q		unsigned long long	integer				8	
+n		ssize_t			integer	 	
+N		size_t			integer		 	
+e		(7)				float					2	
+f		float			float					4	
+d		double			float					8	
+s		char[]			bytes	 	 
+p		char[]			bytes	 	 
+P		void *			integer	 		
+"""
 ip4_header_format  = '!BBHHHBBH4s4s'
 icmp_header_format = '!BBHI'	
 udp_header_format = '!HHHH'
