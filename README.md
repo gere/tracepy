@@ -13,5 +13,5 @@ Keys:
 
 	CTRL-Q: Interrupt (in a very abrupt way)
 
-It works on MacOS and should work on Linux to. Windows, for now, is a show stopper.
+It works on MacOS and should work on Linux too. Windows, for now, is a show stopper.
 
